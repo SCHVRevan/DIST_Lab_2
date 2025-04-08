@@ -1,0 +1,3 @@
+add_executable(test_project with_alloc.cpp)
+target_link_libraries(test_project PRIVATE Allocator_src)
+target_include_directories(test_project PRIVATE ${CMAKE_SOURCE_DIR}/Allocator_src)
