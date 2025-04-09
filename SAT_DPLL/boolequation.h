@@ -5,14 +5,20 @@
 
 class BoolEquation
 {
+    BoolInterval **cnf;//множество интервалов
+    BoolInterval *root;//Корень уравнения
+    int cnfSize; // Размер КНФ
+    int count; //количество дизъюнкций
+    BBV mask; //маска для столбцов
 public:
-	BoolInterval **cnf;//множество интервалов
-	BoolInterval *root;//Корень уравнения
-	int cnfSize; // Размер КНФ
-	int count; //количество дизъюнкций
-	BBV mask; //маска для столбцов
 	BoolEquation(BoolInterval **cnf, BoolInterval *root, int cnfSize, int count, BBV mask);
 	BoolEquation(BoolEquation &equation);
+
+    // Getters
+    int get_count() {return count;}
+    BBV get_mask()  {return mask;}
+    BoolInterval *get_root() {return root;}
+
 	int CheckRules();
 	bool Rule1Row1(BoolInterval *interval);
 	bool Rule2RowNull(BoolInterval *interval);
