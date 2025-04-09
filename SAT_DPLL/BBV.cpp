@@ -73,7 +73,7 @@ BBV::BBV(const char * str)
         throw 0;
 }
 
-BBV::BBV(BBV & V)
+BBV::BBV(BBV& V)
 {
     if(V.vec != NULL)//проверяем существование вестора V.vec
     {
@@ -162,7 +162,7 @@ void BBV::Set1(int k)
         throw 1;
 }
 
-BBV BBV::operator=(BBV & V)
+BBV BBV::operator=(BBV& V)
 {
     if (this != &V)//проверка на самоприсвоение
     {
@@ -223,7 +223,7 @@ BBV BBV::operator=(const char * str)
     return *this;
 }
 
-bool BBV::operator==(BBV & V)
+bool BBV::operator==(BBV& V)
 {
     if (vec != NULL && V.vec != NULL && V.len == len)//проверка существования векторов и равенство их длин
     {
@@ -235,7 +235,7 @@ bool BBV::operator==(BBV & V)
     return false;
 }
 
-BBV BBV::operator|(BBV & V)
+BBV BBV::operator|(BBV& V)
 {
     if (vec != NULL && V.vec != NULL && len == V.len)//проверка существования векторов и равенство их длин
     {
@@ -248,7 +248,7 @@ BBV BBV::operator|(BBV & V)
         throw 2;
 }
 
-BBV BBV::operator&(BBV & V)
+BBV BBV::operator&(BBV V)
 {
     if (vec != NULL && V.vec != NULL && len == V.len)//проверка существования векторов и равенство их длин
     {
@@ -261,7 +261,7 @@ BBV BBV::operator&(BBV & V)
         throw 2;
 }
 
-BBV BBV::operator^(BBV & V)
+BBV BBV::operator^(BBV V)
 {
     if (vec != NULL && V.vec != NULL && len == V.len)//проверка существования векторов и равенство их длин
     {
