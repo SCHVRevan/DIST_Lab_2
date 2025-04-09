@@ -52,6 +52,7 @@ Allocator allocatorHeapBlocksBenchmark(MAX_BLOCK_SIZE);
 
 static void out_of_memory() {
 	// new-handler function called by Allocator when pool is out of memory
+    cout << "Out of memory!\n";
 	assert(0);
 }
 
@@ -66,22 +67,43 @@ void* AllocHeapBlocks(int size);
 void DeallocHeapBlocks(void* ptr);
 
 int main() {
-    set_new_handler(out_of_memory);
+    set_new_handler(out_of_memory); // !!!
 
     Person* some_person = new Person();
     delete some_person;
     
-    //clock_t start = clock();
+    void* test_mem[50];
+    // HeapBlocks
+    for (int i = 0; i < 20; i++) {
+        test_mem[i] = allocHeapBlocks.Allocate(100);
+        cout << "allocHeapBlocks: " << allocHeapBlocks.GetBlockCount() << "\n";
+    }
+    for (int i = 0; i < 20; i++) {allocHeapBlocks.Deallocate(test_mem[i]);}
+
+    // HeapPool
+    cout << "\n   HeapPool size: " << allocHeapPool.GetBlockCount() << "\n";
+    for (int i = 0; i < 20; i++) {
+        test_mem[i] = allocHeapPool.Allocate(100);
+        cout << "allocHeapPool: " << allocHeapPool.GetBlocksInUse() << "\n";
+    }
+    for (int i = 0; i < 20; i++) {
+        allocHeapPool.Deallocate(test_mem[i]);\
+        cout << "allocHeapPool dealloc: " << allocHeapPool.GetBlocksInUse() << "\n";
+    }
+
+    // StaticPool
+    cout << "\n   StaticPool size: " << allocStaticPool.GetBlockCount() << "\n";
+    for (int i = 0; i < 21; i++) {
+        test_mem[i] = allocStaticPool.Allocate(100);
+        cout << "allocStaticPool: " << allocStaticPool.GetBlocksInUse() << "\n";
+    }
+    for (int i = 0; i < 20; i++) {allocStaticPool.Deallocate(test_mem[i]);}
+    
+
     void* memo1 = allocHeapBlocks.Allocate(100);
-    //clock_t end = clock();
-    //long double time = (long double)(end - start) / CLOCKS_PER_SEC;
-    //cout << "Test 1: " << setprecision(10) << time << "\n";
     allocHeapBlocks.Deallocate(memo1);
 
-    //start = clock();
     void* memo2 = allocHeapBlocks.Allocate(100);
-    //end = clock();
-    //cout << "Test 2: " << setprecision(10) << time << "\n";
     allocHeapBlocks.Deallocate(memo2);
 
     void* memo3 = allocHeapPool.Allocate(100);
@@ -94,7 +116,7 @@ int main() {
 
     void* memo6 = allocStaticPool2.Allocate(sizeof(Person));
     allocStaticPool2.Deallocate(memo6);
-
+/*
     Benchmark("Heap (Run 1)", AllocHeap, DeallocHeap);
 	Benchmark("Heap (Run 2)", AllocHeap, DeallocHeap);
 	Benchmark("Heap (Run 3)", AllocHeap, DeallocHeap);
@@ -104,7 +126,7 @@ int main() {
 	Benchmark("Heap Blocks (Run 1)", AllocHeapBlocks, DeallocHeapBlocks);
 	Benchmark("Heap Blocks (Run 2)", AllocHeapBlocks, DeallocHeapBlocks);
 	Benchmark("Heap Blocks (Run 3)", AllocHeapBlocks, DeallocHeapBlocks);
-
+*/
     return 0;
 }
 
@@ -133,44 +155,42 @@ void DeallocHeapBlocks(void* ptr) {
 }
 
 void Benchmark(const char* name, AllocFunc allocFunc, DeallocFunc deallocFunc) {
-    //1 миллисекунда = 1000 микросекунд
-    cout << "Benchmark: " << name;
-
+    cout << "Benchmark: " << name << "\n";
     auto totalStart = high_resolution_clock::now();
 
-    // Замер: первая волна аллокации
+    // Allocate MAX_BLOCKS blocks MAX_BLOCK_SIZE / 2 sized blocks
     auto start = high_resolution_clock::now();
     for (int i = 0; i < MAX_BLOCKS; i++) {
         memoryPtrs[i] = allocFunc(MAX_BLOCK_SIZE / 2);
     }
     auto end = high_resolution_clock::now();
-    cout << "  Allocate (1st pass): " << duration_cast<microseconds>(end - start).count() << " mcs\n";
+    cout << "  Allocate MAX_BLOCKS blocks MAX_BLOCK_SIZE / 2 sized blocks: " << duration_cast<microseconds>(end - start).count() << " mcs\n";
 
-    // Замер: деаллокация через один
+    // Deallocate MAX_BLOCKS blocks (every other one)
     start = high_resolution_clock::now();
     for (int i = 0; i < MAX_BLOCKS; i += 2) {
         deallocFunc(memoryPtrs[i]);
     }
     end = high_resolution_clock::now();
-    cout << "  Deallocate (every other): " << duration_cast<microseconds>(end - start).count() << " mcs\n";
+    cout << "  Deallocate (every other one): " << duration_cast<microseconds>(end - start).count() << " mcs\n";
 
-    // Замер: вторая волна аллокации (максимальные блоки)
+    // Allocate MAX_BLOCKS blocks MAX_BLOCK_SIZE sized blocks
     start = high_resolution_clock::now();
     for (int i = 0; i < MAX_BLOCKS; i++) {
         memoryPtrs2[i] = allocFunc(MAX_BLOCK_SIZE);
     }
     end = high_resolution_clock::now();
-    cout << "  Allocate (2nd pass): " << duration_cast<microseconds>(end - start).count() << " mcs\n";
+    cout << "  Allocate MAX_BLOCKS blocks MAX_BLOCK_SIZE sized blocks: " << duration_cast<microseconds>(end - start).count() << " mcs\n";
 
-    // Замер: деаллокация через один, другая половина
+    // Deallocate MAX_BLOCKS blocks (every other one)
     start = high_resolution_clock::now();
     for (int i = 1; i < MAX_BLOCKS; i += 2) {
         deallocFunc(memoryPtrs[i]);
     }
     end = high_resolution_clock::now();
-    cout << "  Deallocate (remaining): " << duration_cast<microseconds>(end - start).count() << " mcs\n";
+    cout << "  Deallocate (every other one): " << duration_cast<microseconds>(end - start).count() << " mcs\n";
 
-    // Замер: финальная деаллокация всех
+    // Deallocate MAX_BLOCKS blocks
     start = high_resolution_clock::now();
     for (int i = MAX_BLOCKS - 1; i >= 0; i--) {
         deallocFunc(memoryPtrs2[i]);
