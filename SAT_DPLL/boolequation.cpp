@@ -27,7 +27,7 @@ BoolEquation::BoolEquation(BoolEquation &equation)
 		this->cnf[i] = equation.cnf[i];
 	}
 
-	this->root = new BoolInterval(equation.root->vec, equation.root->dnc);
+    this->root = new BoolInterval(equation.root->get_vec(), equation.root->get_dnc());
 	this->cnfSize = equation.cnfSize;
 	this->count = equation.count;
 	this->mask = equation.mask;
@@ -50,11 +50,11 @@ int BoolEquation::CheckRules()
 			}
 
 			if (count == 1) {
-				if (Rule4Col0(interval->vec ^ interval->dnc)) {
+                if (Rule4Col0(interval->get_vec() ^ interval->get_dnc())) {
 					return 1;
 				}
 
-				if (Rule5Col1(interval->vec)) {
+                if (Rule5Col1(interval->get_vec())) {
 					return 1;
 				}
 			}
@@ -83,21 +83,21 @@ int BoolEquation::CheckRules()
 
 			if (!rezInit) {
 				// cout << interval->vec;
-				rez0 = interval->vec ^ interval->dnc;
-				rez1 = interval->vec;
-				rez  = interval->dnc;
+                rez0 = interval->get_vec() ^ interval->get_dnc();
+                rez1 = interval->get_vec();
+                rez  = interval->get_dnc();
 				rezInit = true;
 			} else {
-				rez = rez & interval->dnc;
+                rez = rez & interval->get_dnc();
 
 				//cout << rez0;
-				BBV temprez = interval->vec ^ interval->dnc;
+                BBV temprez = interval->get_vec() ^ interval->get_dnc();
 				// cout << temprez;
 				rez0 = rez0 | temprez;
 				// cout << rez0;
 
 				// cout << rez1;
-				rez1 = rez1 & interval->vec;
+                rez1 = rez1 & interval->get_vec();
 				// cout << rez1;
 			}
 		}
