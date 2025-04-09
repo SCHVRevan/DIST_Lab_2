@@ -6,26 +6,22 @@
 #include <cstring>
 #include <stack>
 #include <ostream>
-//#include <QDir>
-//#include <QDebug>
+#include <chrono>
 
 #include "NodeBoolTree.h"
 #include "boolinterval.h"
 #include "boolequation.h"
 #include "BBV.h"
+//#include "Allocator.h"
 
-/*
-1. Составить свой мейн (файл) с тестами аллокатора (3-4 разных способа выделения памяти, замеры времени)
-2. Инкапсуляция данных в её проекте (убрать в приватную часть какие-то вещи, поработать над тем, чтобы ничего при этом не сломалось)
-3*. Она хотела возможность выбора пользователем способа решения (внедрить что-то похожее на логирование из первой лабы, но для выбора способа решения)
-4. Замена всех выделений памяти (new) на аллокаторы + сравнение времени выделения памяти (до/после)
-5. Ломать, ломать, намерено вызывать и отлавливать ошибки (нехватка памяти для выделения, утечки памяти, ...)
-*/
+using namespace std;
+using namespace std::chrono;
 
-//int main(int argc, char *argv[])
 int main()
 {
-    //qDebug() << QDirectory::
+    auto totalStart = high_resolution_clock::now();
+    auto start = high_resolution_clock::now();
+
 	QStringList full_file_list;
 	QList<QStringList> Elements;
 	std::string filepath;
@@ -120,16 +116,16 @@ int main()
 						}
 
 						case 1: { // Правило выполнилось, корень найден или продолжаем упрощать.
-							if (currentEquation->count == 0 ||
-									currentEquation->mask.getWeight() ==
-									currentEquation->mask.getSize()) { // Если кончились строки или столбцы, корень найден.
+                            if (currentEquation->get_count() == 0 ||
+                                currentEquation->get_mask().getWeight() ==
+                                currentEquation->get_mask().getSize()) { // Если кончились строки или столбцы, корень найден.
 								flag = false;
 								rootIsFinded =
 									true; // Полагаем, что корень найден, выполняем проверку корня
 
 								for (int i = 0; i < cnfSize; i++) {
 
-									if (!CNF[i]->isEqualComponent(*currentEquation->root)) {
+                                    if (!CNF[i]->isEqualComponent(*currentEquation->get_root())) {
 										rootIsFinded = false;//Корень не найден. Продолжаем искать дальше.
 										BoolTree.pop();
 										break;
@@ -173,7 +169,7 @@ int main()
 
 		if (rootIsFinded) {
 			cout << "Root is:\n ";
-			BoolInterval *finded_root = BoolTree.top()->eq->root;
+            BoolInterval *finded_root = BoolTree.top()->eq->get_root();
 			cout << string(*finded_root);
 		} else {
 			cout << "Root is not exists!";
@@ -182,6 +178,9 @@ int main()
 	} else {
 		std::cout << "File does not exists.\n";
 	}
+
+    auto end = high_resolution_clock::now();
+    cout << "\nTotal time: " << duration_cast<microseconds>(end - start).count() << " mcs\n";
 
 	return 0;
 }
