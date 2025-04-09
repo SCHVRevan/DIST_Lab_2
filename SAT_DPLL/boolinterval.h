@@ -5,14 +5,17 @@
 
 class BoolInterval
 {
+    BBV vec;
+    BBV dnc;
 public:
-	BBV vec;
-	BBV dnc;
 	explicit BoolInterval(size_t len = 8);
 	BoolInterval(const char *vec_in, const char *dnc_in);
 	explicit BoolInterval(const char *vector);
 	BoolInterval(BBV &vec_in, BBV &dnc_in);
 	void setInterval(BBV &vec, BBV &dnc);
+
+    BBV get_vec() {return vec;}
+    BBV get_dnc() {return dnc;}
 
 	BoolInterval &operator=(BoolInterval &ibv);
 	bool operator == (BoolInterval &ibv);
