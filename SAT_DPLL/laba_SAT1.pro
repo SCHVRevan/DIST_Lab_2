@@ -14,6 +14,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # You can also select to disable deprecated APIs only up to a certain version of Qt.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+INCLUDEPATH += /home/schvrevan/Documents/DIST/lab2/Project/Allocator_src/
+LIBS += -L/home/schvrevan/Documents/DIST/lab2/Project/Allocator_src/Build -lAllocator_src
+
 SOURCES += \
         BBV.cpp \
         boolequation.cpp \
@@ -30,3 +33,5 @@ HEADERS += \
     NodeBoolTree.h \
     boolequation.h \
     boolinterval.h
+
+DEFINES += "USE_CUSTOM_ALLOCATOR=ON"
