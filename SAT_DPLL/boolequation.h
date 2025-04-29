@@ -1,6 +1,5 @@
 #ifndef BOOLEQUATION_H
 #define BOOLEQUATION_H
-
 #include "boolinterval.h"
 
 class BoolEquation
@@ -11,7 +10,7 @@ class BoolEquation
     int count; //количество дизъюнкций
     BBV mask; //маска для столбцов
 public:
-	BoolEquation(BoolInterval **cnf, BoolInterval *root, int cnfSize, int count, BBV mask);
+    BoolEquation(BoolInterval **cnf, BoolInterval *root, int cnfSize, int count, BBV mask);
 	BoolEquation(BoolEquation &equation);
 
     // Getters
@@ -27,6 +26,7 @@ public:
 	bool Rule5Col1(BBV vector);
 	void Simplify(int ixCol, char value);
 	int ChooseColForBranching();
+    int ChooseRowForBranching();
 };
 
 #endif // BOOLEQUATION_H
