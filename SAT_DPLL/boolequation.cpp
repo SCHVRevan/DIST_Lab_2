@@ -1,4 +1,5 @@
 #include "boolequation.h"
+#include <limits.h>
 #include <vector>
 #include <algorithm>
 #include <ostream>
@@ -15,8 +16,7 @@ BoolEquation::BoolEquation(BoolInterval **cnf, BoolInterval *root, int cnfSize, 
 	this->root = root;
 	this->cnfSize = cnfSize;
 	this->count = count;
-	this->mask = mask;
-
+    this->mask = mask;
 }
 
 BoolEquation::BoolEquation(BoolEquation &equation)
@@ -30,7 +30,7 @@ BoolEquation::BoolEquation(BoolEquation &equation)
     this->root = new BoolInterval(equation.root->get_vec(), equation.root->get_dnc());
 	this->cnfSize = equation.cnfSize;
 	this->count = equation.count;
-	this->mask = equation.mask;
+    this->mask = equation.mask;
 }
 
 // Проверка правил
@@ -259,4 +259,55 @@ int BoolEquation::ChooseColForBranching()
 	int minElementIndex = std::min_element(values.begin(), values.end()) - values.begin();
 
 	return indexes.at(minElementIndex);
+}
+
+int BoolEquation::ChooseRowForBranching()
+{
+    vector<int> nonEmptyRows;
+    vector<int> rowWeights;
+
+    // Собираем непустые строки (интервалы)
+    for (int i = 0; i < cnfSize; i++) {
+        if (cnf[i] != nullptr) {
+            nonEmptyRows.push_back(i);
+
+            // Вычисляем вес строки (количество незамаскированных переменных)
+            int weight = 0;
+            for (int j = 0; j < mask.getSize(); j++) {
+                if (mask[j] == 0 && cnf[i]->getValue(j) != '-') {
+                    weight++;
+                }
+            }
+            rowWeights.push_back(weight);
+        }
+    }
+
+    // Если нет строк, возвращаем -1 (ошибка)
+    if (nonEmptyRows.empty()) {
+        return -1;
+    }
+
+    // Выбираем строку с минимальным весом (но не нулевым)
+    int minIndex = 0;
+    int minWeight = INT_MAX;
+
+    for (size_t i = 0; i < rowWeights.size(); i++) {
+        if (rowWeights[i] > 0 && rowWeights[i] < minWeight) {
+            minWeight = rowWeights[i];
+            minIndex = i;
+        }
+    }
+
+    // Для выбранной строки ищем индекс переменной (столбец) для ветвления
+    int rowIndex = nonEmptyRows[minIndex];
+
+    // Выбираем первый незамаскированный столбец в этой строке
+    for (int j = 0; j < mask.getSize(); j++) {
+        if (mask[j] == 0 && cnf[rowIndex]->getValue(j) != '-') {
+            return j;
+        }
+    }
+
+    // Если не нашли подходящий столбец, вернем результат обычной стратегии
+    return ChooseColForBranching();
 }
