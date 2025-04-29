@@ -31,7 +31,10 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 HEADERS += \
     BBV.h \
     NodeBoolTree.h \
+    Strategy.h \
     boolequation.h \
-    boolinterval.h
+    boolinterval.h \
+    Allocator.h \
+    Strategy.h
 
 DEFINES += "USE_CUSTOM_ALLOCATOR=ON"
