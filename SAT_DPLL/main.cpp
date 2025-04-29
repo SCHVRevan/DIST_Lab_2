@@ -16,6 +16,7 @@
 #include "boolequation.h"
 #include "BBV.h"
 #include "Allocator.h"
+#include "Strategy.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -98,6 +99,19 @@ static void out_of_memory() {
 int main() {
     set_new_handler(out_of_memory);
 
+    Strategy1 str1;
+    Strategy2 str2;
+
+    Context strategy(&str1);
+
+    if (dynamic_cast<Strategy1*>(strategy.getStrategy())) {
+        cout << "Choose Col For Branching\n";
+    }
+
+    else if (dynamic_cast<Strategy2*>(strategy.getStrategy())) {
+        cout << "Choose Row For Branching\n";
+    }
+
 #ifdef USE_CUSTOM_ALLOCATOR
     cout << "Custom allocators are used for different types of classes\n";
 #else
@@ -136,7 +150,6 @@ int main() {
 
         for (int i = 0; i < cnfSize; i++) { // Заполняем массив
             QString strv = full_file_list[i];
-            //CNF[i] = new BoolInterval(strv.toUtf8().trimmed().data());
 
             #ifdef USE_CUSTOM_ALLOCATOR
                 CNF[i] = allocateInterval(strv.toUtf8().trimmed().data());
@@ -188,7 +201,7 @@ int main() {
             startNode = allocateNode(boolequation);
         #else
             // Используем стандартный new
-            boolequation = new BoolEquation(CNF, root, cnfSize, cnfSize, vec);
+            boolequation = new BoolEquation(CNF, root, cnfSize, cnfSize, vec, strategy);
             startNode = new NodeBoolTree(boolequation);
         #endif
 
@@ -254,16 +267,32 @@ int main() {
                     case 2: { // Правила не выполнились, ветвление.
                         // Ветвление, создание новых узлов.
 
-                        int indexBranching = currentEquation->ChooseColForBranching();
+                        //int indexBranching = currentEquation->ChooseColForBranching();
+                        int indexBranching = strategy.getStrategy()->strat(*currentEquation);
 
-                        BoolEquation *Equation0 = new BoolEquation(*currentEquation);
-                        BoolEquation *Equation1 = new BoolEquation(*currentEquation);
+                        // Создаем новые уравнения и узлы в зависимости от типа аллокации
+                        BoolEquation *Equation0, *Equation1;
+                        NodeBoolTree *Node0, *Node1;
+
+                        #ifdef USE_CUSTOM_ALLOCATOR
+                        Equation0 = allocateEquationCopy(*currentEquation);
+                        Equation1 = allocateEquationCopy(*currentEquation);
 
                         Equation0->Simplify(indexBranching, '0');
                         Equation1->Simplify(indexBranching, '1');
 
-                        NodeBoolTree *Node0 = new NodeBoolTree(Equation0);
-                        NodeBoolTree *Node1 = new NodeBoolTree(Equation1);
+                        Node0 = allocateNode(Equation0);
+                        Node1 = allocateNode(Equation1);
+                        #else
+                        Equation0 = new BoolEquation(*currentEquation);
+                        Equation1 = new BoolEquation(*currentEquation);
+
+                        Equation0->Simplify(indexBranching, '0');
+                        Equation1->Simplify(indexBranching, '1');
+
+                        Node0 = new NodeBoolTree(Equation0);
+                        Node1 = new NodeBoolTree(Equation1);
+                        #endif
 
                         currentNode->lt = Node0;
                         currentNode->rt = Node1;
@@ -283,17 +312,17 @@ int main() {
         } while (BoolTree.size() > 1 && !rootIsFinded);
 
         auto end_time = high_resolution_clock::now();
-        cout << "\nTotal time: " << duration_cast<microseconds>(end_time - start_time).count() << " mcs\n";
 
         if (rootIsFinded) {
             cout << "Root is:\n ";
             BoolInterval *finded_root = BoolTree.top()->eq->get_root();
             cout << string(*finded_root);
         } else {
-            cout << "Root is not exists!";
+            cout << "Root is not exists!\n";
         }
+        cout << "\nTotal time: " << duration_cast<microseconds>(end_time - start_time).count() << " mcs\n";
 
-        #ifdef USE_CUSTOM_ALLOCATOR
+/*        #ifdef USE_CUSTOM_ALLOCATOR
             cout << "\n\n===== Allocator statistics =====\n\n";
             cout << "Allocator for BoolEquation:\n";
             cout << "  Block Size: " << equationAllocator.GetBlockSize() << " bytes\n";
@@ -323,7 +352,7 @@ int main() {
             cout << "  Allocations: " << bbvAllocator.GetAllocations() << "\n";
             cout << "  Deallocations: " << bbvAllocator.GetDeallocations() << "\n";
         #endif
-
+*/
         #ifdef USE_CUSTOM_ALLOCATOR
             while (!BoolTree.empty()) {
                 NodeBoolTree* node = BoolTree.top();
@@ -348,7 +377,7 @@ int main() {
                 NodeBoolTree* node = BoolTree.top();
                 BoolTree.pop();
                 delete node->eq;
-                 delete node;
+                delete node;
             }
 
             for (int i = 0; i < cnfSize; i++) {
