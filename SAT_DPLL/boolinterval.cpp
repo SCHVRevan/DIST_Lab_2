@@ -1,262 +1,188 @@
-#include "boolequation.h"
-#include <vector>
-#include <algorithm>
-#include <ostream>
-#include <string>
+#include "boolinterval.h"
+#include "BBV.h"
+#include <cstring>
+#include <iostream>
 
-BoolEquation::BoolEquation(BoolInterval **cnf, BoolInterval *root, int cnfSize, int count, BBV mask)
+BoolInterval::BoolInterval(size_t len)
 {
-	this->cnf = new BoolInterval*[cnfSize];
-
-	for (int i = 0; i < cnfSize; i++) {
-		this->cnf[i] = cnf[i];
-	}
-
-	this->root = root;
-	this->cnfSize = cnfSize;
-	this->count = count;
-	this->mask = mask;
-
+	vec = BBV(len);
+	dnc = BBV(len);
 }
 
-BoolEquation::BoolEquation(BoolEquation &equation)
+BoolInterval::BoolInterval(const char *vec_in, const char *dnc_in)
 {
-	this->cnf = new BoolInterval*[equation.cnfSize];
-
-	for (int i = 0; i < equation.cnfSize; i++) {
-		this->cnf[i] = equation.cnf[i];
+	//Проверяем , если строки не пустые и их длины совпадают, то инициализируем вектора, иначе ошибка и в этом случае создаем нулевые веткора мин длины(1 байт).
+	if (vec_in && dnc_in && strlen(vec_in) == strlen(dnc_in)) {
+		vec = BBV(vec_in);
+		dnc = BBV(dnc_in);
+	} else {
+		vec = BBV(8);
+		dnc = BBV(8);
 	}
-
-    this->root = new BoolInterval(equation.root->get_vec(), equation.root->get_dnc());
-	this->cnfSize = equation.cnfSize;
-	this->count = equation.count;
-	this->mask = equation.mask;
 }
 
-// Проверка правил
-int BoolEquation::CheckRules()
+BoolInterval::BoolInterval(const char *vector)
 {
-	BBV rez, rez1, rez0;
-	bool rezInit = false;
+	if (vector) {
+		size_t sz = strlen(vector);
+		vec = BBV(sz);
+		dnc = BBV(sz);
+		int ix = 0;
 
-	for (int i = 0; i < cnfSize; i++) {
-		BoolInterval *interval = cnf[i];
-
-		//		std::cout << string(*interval) << " <---> " << i << endl;
-
-		if (interval != nullptr) {
-			if (Rule2RowNull(interval)) {
-				return 0;
+		while (ix < sz) {
+			if (vector[ix] == '-') {
+				dnc[ix] = 1;
+			} else if (vector[ix] == '1') {
+				vec[ix] = 1;
 			}
 
-			if (count == 1) {
-                if (Rule4Col0(interval->get_vec() ^ interval->get_dnc())) {
-					return 1;
-				}
-
-                if (Rule5Col1(interval->get_vec())) {
-					return 1;
-				}
-			}
-
-			if (Rule1Row1(interval)) {
-				for (int k = 0; k < interval->length(); k++) {
-					if (mask[k] != 1) {
-						char value = interval->getValue(k);
-
-						if (value != '-') {
-							if (value == '0') {
-								//Simplify(k, '1');
-								Simplify(k, '0');
-								break;
-							} else {
-								//Simplify(k, '0');
-								Simplify(k, '1');
-								break;
-							}
-						}
-					}
-				}
-
-				return 1;
-			}
-
-			if (!rezInit) {
-				// cout << interval->vec;
-                rez0 = interval->get_vec() ^ interval->get_dnc();
-                rez1 = interval->get_vec();
-                rez  = interval->get_dnc();
-				rezInit = true;
-			} else {
-                rez = rez & interval->get_dnc();
-
-				//cout << rez0;
-                BBV temprez = interval->get_vec() ^ interval->get_dnc();
-				// cout << temprez;
-				rez0 = rez0 | temprez;
-				// cout << rez0;
-
-				// cout << rez1;
-                rez1 = rez1 & interval->get_vec();
-				// cout << rez1;
-			}
+			ix++;
 		}
 	}
-
-	//       cout << "Vector dlya ---- " << rez << "\n";
-	//       cout << "Vector dlya 1 " << rez1 << "\n";
-	//       cout << "Vector dlya 0 " << rez0 << "\n";
-	Rule3ColNull(rez);
-
-	if (Rule4Col0(rez0)) {
-		return 1;
-	}
-
-	if (Rule5Col1(rez1)) {
-		return 1;
-	}
-
-
-	return 2;
 }
 
-// Строка пустая
-bool BoolEquation::Rule2RowNull(BoolInterval *interval)
+BoolInterval::BoolInterval(BBV &vec_in, BBV &dnc_in)
 {
-	int counter = 0;
+	vec = vec_in;
+	dnc = dnc_in;
 
-	for (int i = 0; i < mask.getSize(); i++) {
-		if (mask[i] != 1) {
-			if (interval->getValue(i) != '-') {
-				counter++;
-				break;
-			}
-		}
-	}
-
-	if (counter > 0) {
-		return false;
-	}
-
-	return true;
 }
-//Строка содержит одну переменную
-bool BoolEquation::Rule1Row1(BoolInterval *interval)
+
+void BoolInterval::setInterval(BBV &vec, BBV &dnc)
 {
-	int counter = 0;
+}
 
-	for (int i = 0; i < mask.getSize(); i++) {
-		if (mask[i] != 1) {
-			if (interval->getValue(i) != '-') {
-				counter++;
-			}
-		}
-	}
 
-	if (counter == 1) {
+bool BoolInterval::operator==(BoolInterval &ibv)
+{
+	if (vec == ibv.vec && dnc == ibv.dnc) {
 		return true;
 	}
 
 	return false;
 }
 
-void BoolEquation::Rule3ColNull(BBV vector)
+bool BoolInterval::operator!=(BoolInterval &ibv)
 {
-
-	//cout << "Vector "<< vector;
-	//cout << "Mask " << mask;
-	for (int i = 0; i < vector.getSize(); i++) {
-		if (vector[i] == 1 && mask[i] != 1) {
-			mask.Set1(i);
-		}
-	}
-
-}
-
-bool BoolEquation::Rule4Col0(BBV vector)
-{
-	for (int i = 0; i < vector.getSize(); i++) {
-		if (vector[i] == 0 && mask[i] != 1) {
-			//			Simplify(i, '1');
-			Simplify(i, '0');
-			return true;
-		}
+	if (vec != ibv.vec || dnc != ibv.dnc) {
+		return true;
 	}
 
 	return false;
 }
 
-bool BoolEquation::Rule5Col1(BBV vector)
+BoolInterval::operator string()
 {
-	for (int i = 0; i < vector.getSize(); i++) {
-		if (vector[i] == 1 && mask[i] != 1) {
-			//			Simplify(i, '0');
-			Simplify(i, '1');
-			return true;
-		}
+	size_t sz = vec.getSize();
+	string str(vec.getSize(), '0');
+
+	for (int ix = 0; ix < sz; ix++) {
+		str[ix] = getValue(ix);
+	}
+
+	return str;
+}
+
+int BoolInterval::length()
+{
+	return vec.getSize();
+}
+
+int BoolInterval::rang()
+{
+	//Определяем ранг интервала
+	return (vec.getSize() - dnc.getWeight());
+}
+
+bool BoolInterval::isEqualComponent(BoolInterval &ibv)
+{
+	BBV zero(vec.getSize());
+	BBV tmpUV(zero);
+	BBV tmpU(zero);
+	BBV tmpV(zero);
+	BBV answer(zero);
+	tmpUV = dnc | ibv.dnc;
+	//Output vector for debug
+	//cout << (string)tmpUV << endl;
+	tmpU = vec | tmpUV;
+	//Output vector for debug
+	//cout << (string)tmpU << endl;
+	tmpV = ibv.vec | tmpUV;
+	//Output vector for debug
+	//cout << (string)tmpV << endl;
+	answer = (tmpU ^ tmpV);
+	//Output vector for debug
+	answer = (tmpUV | answer);
+
+	if (answer.getWeight() != vec.getSize()) {
+		return true;
 	}
 
 	return false;
+
 }
 
-void BoolEquation::Simplify(int ixCol, char value)
+
+bool BoolInterval::isOrthogonal(BoolInterval &ibv)
 {
-	for (int i = 0; i < cnfSize; i++) {
-		BoolInterval *interval = cnf[i];
+	BBV zero(vec.getSize());
+	BBV tmpUV(zero);
+	BBV tmpU(zero);
+	BBV tmpV(zero);
+	BBV answer(zero);
+	tmpUV = dnc     | ibv.dnc;
+	//Output vector for debug
+	//cout << (string)tmpUV << endl;
+	tmpU =  vec     | tmpUV;
+	//Output vector for debug
+	//cout << (string)tmpU << endl;
+	tmpV =  ibv.vec | tmpUV;
+	//Output vector for debug
+	//cout << (string)tmpV << endl;
+	answer = (tmpU ^ tmpV);
+	//Output vector for debug
+	//cout << (string)answer << endl;
 
-		if (interval != nullptr) {
-			char val = interval->getValue(ixCol);
-
-			//if (val != value && val != '-') {
-			if (val == value && val != '-') {
-				cnf[i] = nullptr;
-				count--;
-			}
-		}
+	if (answer != zero) {
+		return true;
 	}
 
-	root->setValue(value, ixCol);
-	mask.Set1(ixCol);
+	return false;
+
 }
 
-int BoolEquation::ChooseColForBranching()
+
+char BoolInterval::getValue(int ix)
 {
-	vector<int> indexes;
-	vector<int> values;
-	bool rezInit = false;
-
-	for (int i = 0; i < mask.getSize(); i++) {
-		if (mask[i] == 0) {
-			indexes.push_back(i);
-		}
+	if (ix < 0 || ix > vec.getSize()) {
+		throw "Out of range";
 	}
 
-	for (int i = 0; i < cnfSize; i++) {
-		BoolInterval *interval = cnf[i];
-
-		if (interval != nullptr) {
-			if (!rezInit) {
-				for (int k = 0; k < indexes.size(); k++) {
-					if (interval->getValue(indexes.at(k)) == '-') {
-						values.push_back(1);
-					} else {
-						values.push_back(0);
-					}
-				}
-
-				rezInit = true;
-			} else {
-				for (int k = 0; k < indexes.size(); k++) {
-					if (interval->getValue(indexes.at(k)) == '-') {
-						//int val = values.at(k) + (interval->getValue(indexes.at(k)) - '0');
-						values.at(k)++;
-					}
-				}
-			}
-		}
+	if (dnc[ix] == 1) {
+		return '-';
 	}
 
-	int minElementIndex = std::min_element(values.begin(), values.end()) - values.begin();
+	if (vec[ix] == 1) {
+		return '1';
+	}
 
-	return indexes.at(minElementIndex);
+	return '0';
+}
+
+void BoolInterval::setValue(char value, int ix)
+{
+	if (ix < 0 || ix > vec.getSize()) {
+		throw "Out of range";
+	}
+
+	if (value == '-') {
+		dnc[ix] = 1;
+		vec[ix] = 0;
+	} else if (value == '0') {
+		vec[ix] = 0;
+		dnc[ix] = 0;
+	} else {
+		vec[ix] = 1;
+		dnc[ix] = 0;
+	}
 }
