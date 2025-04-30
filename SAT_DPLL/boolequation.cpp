@@ -1,3 +1,6 @@
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++, C#, and Java: https://pvs-studio.com
+
 #include "boolequation.h"
 #include <limits.h>
 #include <vector>
@@ -217,97 +220,4 @@ void BoolEquation::Simplify(int ixCol, char value)
 
 	root->setValue(value, ixCol);
 	mask.Set1(ixCol);
-}
-
-int BoolEquation::ChooseColForBranching()
-{
-	vector<int> indexes;
-	vector<int> values;
-	bool rezInit = false;
-
-	for (int i = 0; i < mask.getSize(); i++) {
-		if (mask[i] == 0) {
-			indexes.push_back(i);
-		}
-	}
-
-	for (int i = 0; i < cnfSize; i++) {
-		BoolInterval *interval = cnf[i];
-
-		if (interval != nullptr) {
-			if (!rezInit) {
-				for (int k = 0; k < indexes.size(); k++) {
-					if (interval->getValue(indexes.at(k)) == '-') {
-						values.push_back(1);
-					} else {
-						values.push_back(0);
-					}
-				}
-
-				rezInit = true;
-			} else {
-				for (int k = 0; k < indexes.size(); k++) {
-					if (interval->getValue(indexes.at(k)) == '-') {
-						//int val = values.at(k) + (interval->getValue(indexes.at(k)) - '0');
-						values.at(k)++;
-					}
-				}
-			}
-		}
-	}
-
-	int minElementIndex = std::min_element(values.begin(), values.end()) - values.begin();
-
-	return indexes.at(minElementIndex);
-}
-
-int BoolEquation::ChooseRowForBranching()
-{
-    vector<int> nonEmptyRows;
-    vector<int> rowWeights;
-
-    // Собираем непустые строки (интервалы)
-    for (int i = 0; i < cnfSize; i++) {
-        if (cnf[i] != nullptr) {
-            nonEmptyRows.push_back(i);
-
-            // Вычисляем вес строки (количество незамаскированных переменных)
-            int weight = 0;
-            for (int j = 0; j < mask.getSize(); j++) {
-                if (mask[j] == 0 && cnf[i]->getValue(j) != '-') {
-                    weight++;
-                }
-            }
-            rowWeights.push_back(weight);
-        }
-    }
-
-    // Если нет строк, возвращаем -1 (ошибка)
-    if (nonEmptyRows.empty()) {
-        return -1;
-    }
-
-    // Выбираем строку с минимальным весом (но не нулевым)
-    int minIndex = 0;
-    int minWeight = INT_MAX;
-
-    for (size_t i = 0; i < rowWeights.size(); i++) {
-        if (rowWeights[i] > 0 && rowWeights[i] < minWeight) {
-            minWeight = rowWeights[i];
-            minIndex = i;
-        }
-    }
-
-    // Для выбранной строки ищем индекс переменной (столбец) для ветвления
-    int rowIndex = nonEmptyRows[minIndex];
-
-    // Выбираем первый незамаскированный столбец в этой строке
-    for (int j = 0; j < mask.getSize(); j++) {
-        if (mask[j] == 0 && cnf[rowIndex]->getValue(j) != '-') {
-            return j;
-        }
-    }
-
-    // Если не нашли подходящий столбец, вернем результат обычной стратегии
-    return ChooseColForBranching();
 }
